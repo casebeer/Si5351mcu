@@ -82,6 +82,8 @@ class Si5351mcu {
         // reset all PLLs
         void reset(void);
 
+        void setPhase(uint8_t, uint8_t);
+
         // set CLKx(0..2) to freq (Hz)
         void setFreq(uint8_t, uint32_t);
 

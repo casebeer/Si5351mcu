@@ -207,7 +207,7 @@ void setup() {
 ```
 
 This can also be used to underclock the VCO to allow lower frequency output and greater phase shifts at low freqencies
-(since the max phase shift is 127 quarter cycles of the VCO). 
+(since the max phase shift is 127 quarter cycles of the VCO).
 
 ## Click noise free ##
 
@@ -241,9 +241,57 @@ Most of the time when you are making a sweep the output divider Msynth has a con
 
 ## Two of three ##
 
-Yes, there is a tittle catch here with CLK1 and CLK2: both share PLL_B and as we use our own algorithm to calculate the frequencies and minimize phase noise you can only use one of them at a time.
+Yes, there is a little catch here with CLK1 and CLK2: both share PLL_B and as we use our own algorithm to calculate the frequencies and minimize phase noise you can only use one of them at a time.
 
-Note: _In practice you can, but the other will move from the frequency you set, which is an unexpected behavior, so I made them mutually exclusive (CLK1 and CLK2)._
+Note: _In practice you can, but the other will move from the frequency you set, which is an unexpected behavior._
+
+Since sharing a PLL is required to set the relative phase of two clock outputs, if you need to set phase, you'll need to do it on CLK1 and CLK2.
+
+## Setting relative phase ##
+
+You can set the phase of an output by passing a phase delay in integer units of 1 / 256 of a cycle to the `setPhase` method. Thus `setPhase(64)` delays by a quarter cycle for quadrature output. A few restrictions:
+
+- Clocks sharing a phase relationship must use the same PLL, so you must use CLK1 and CLK2 which share PLLB.
+- Phase is saved in absolute cycles of the PLL frequency, not in degrees or cycles of the output frequency, so to maintain a (non-zero) phase relationship between CLK1 and CLK2, you'll have to reset the phase after each frequency change.
+- You must reset the PLL after setting the phase.
+- The phase shift is limited to 127 quarter cycles of the PLL VCO frequency.
+
+Since this library keeps the VCO frequency as close as possible to 900 MHz, the max phase shift limits the phase shift to about 127 / (4 * 900 MHz) = 35 ns – meaning that the minimum frequency where a quadrature phase shift is possible is around 1 / (4 * 35 ns) = 7.15 MHz.
+
+Note that overclocking will raise this minimum frequency, and underclocking by intentionally setting the max\_vco frequency below 900 MHz will lower it. For instance, to get quadrature output on the 160 m band, set the max\_vco to 225 MHz:
+
+```
+    // 25 Mhz xtal, 225 MHz max VCO
+    Si.init(25000000L, 225000000L);
+    ...
+```
+
+This will raise the max phase shift to 127 / 4 / (225 MHz) = 141 ns, which is greater than the ~139 ns quater cycle time at 1800 KHz, allowing quadrature output for the 160 m band.
+
+Note that Silicon Labs' AN619 specifies that the VCO frequency must be between 600 MHz and 900 MHz, so this is an out of spec configuration.
+
+If you specify a phase shift greater than 127 quarter VCO cycles, the phase shift will be set to 0.
+
+
+```
+    // 10 MHz quadrature example
+
+    // set CLK1 and CLK2 to the same frequency and enable
+    Si.setFreq(1, 10000000L);
+    Si.setFreq(2, 10000000L);
+
+    Si.enable(1);
+    Si.enable(2);
+
+    // set the CLK1 phase shift to 0
+    Si.setPhase(1, 0);
+    // set the CLK2 phase shift to 1/4 cycle delay
+    Si.setPhase(2, 64);
+
+    // reset the PLL to synchronize the phases
+    Si.reset();
+```
+
 
 This are the valid combinations for independent clocks output.
 

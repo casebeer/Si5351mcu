@@ -196,6 +196,41 @@ void Si5351mcu::setFreq(uint8_t clk, unsigned long freq) {
     }
 }
 
+/*****************************************************************************
+ * This function sets the phase shift of the corresponding clock.
+ *
+ * Accepts a clock number and a phase shift as arguments, both uint8_ts. 
+ *
+ * Phase should be specified in integer units of 1/256 the clock's period.
+ *
+ * e.g. to get a π/2 phase delay, phase should be 64 (since 64 / 256 = 1/4 cycle)
+ *
+ * Note that the maximum phase shift in *seconds* is 127 quarter cycles of the 
+ * VCO being used for the clock's PLL. This means that quadrature phase is not 
+ * possible below about 7.15 MHz for the default VCO around 900 MHz. 
+ *
+ * If you specify a phase shift greater than 127 / 4 VCO cycles, the phase 
+ * shift will be set to 0.
+ *
+ * To get large phase shifts at lower frequencies, underclock the max VCO 
+ * frequency. 
+ *
+ * [See the README.md file for other details]
+ ****************************************************************************/
+void Si5351mcu::setPhase(uint8_t clk, uint8_t phase) {
+	// We're accepting phase in units of 1/256 of a cycle of the target freq
+	// Delay must be specified in 1/4 cycles of the VCO clock
+	// Convert by multiplying by the multisynth divisor times 4 and dividing by 256
+	uint16_t delay = phase * omsynth[clk] / 64;
+
+	if (delay > 127) {
+		delay = 0;
+	}
+
+	i2cWrite(165 + clk, uint8_t(delay) & 0b01111111);
+}
+
+
 
 /*****************************************************************************
  * Reset of the PLLs and multisynths output enable
@@ -256,10 +291,6 @@ void Si5351mcu::enable(uint8_t clk) {
 
     // write the register value
     i2cWrite(16 + clk, m + clkpower[clk]);
-
-    // 1 & 2 are mutually exclusive
-    if (clk == 1) disable(2);
-    if (clk == 2) disable(1);
 
     // update the status of the clk
     clkOn[clk] = 1;
