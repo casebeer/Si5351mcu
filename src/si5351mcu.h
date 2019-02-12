@@ -76,6 +76,9 @@ class Si5351mcu {
         // custom init procedure (XTAL in Hz);
         void init(uint32_t);
 
+        // custom init procedure (xtal in hz, max vco in Hz);
+        void init(uint32_t, uint32_t);
+
         // reset all PLLs
         void reset(void);
 
@@ -108,6 +111,9 @@ class Si5351mcu {
         // base xtal freq, over this we apply the correction factor
         // by default 27 MHz
         uint32_t base_xtal = 27000000L;
+
+        // default max VCO frequency - 900 Mhz per datasheet
+        uint32_t max_vco = 900000000L;
 
         // this is the work value, with the correction applied
         // via the correction() procedure

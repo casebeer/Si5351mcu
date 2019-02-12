@@ -39,7 +39,11 @@
  *****************************************************************************/
  void Si5351mcu::init() {
     // init with the default freq
-    init(int_xtal);
+    init(int_xtal, max_vco);
+}
+
+ void Si5351mcu::init(uint32_t nxtal) {
+    init(nxtal, max_vco);
 }
 
 
@@ -47,9 +51,14 @@
  * This is the custom init procedure, it's used to pass a custom xtal
  * and has the duty of init the I2C protocol handshake
  *****************************************************************************/
- void Si5351mcu::init(uint32_t nxtal) {
+ void Si5351mcu::init(uint32_t nxtal, uint32_t nmax_vco) {
     // set the new base xtal freq
     base_xtal = int_xtal = nxtal;
+
+    // set the new max_vco frequency
+    // user a overclock setting for the VCO, max value in my hardware
+    // was 1.05 to 1.1 GHz, as usual YMMV [See README.md for details]
+    max_vco = nmax_vco;
 
     // start I2C (wire) procedures
     Wire.begin();
@@ -81,16 +90,9 @@ void Si5351mcu::setFreq(uint8_t clk, unsigned long freq) {
     uint32_t b, c, f, fvco, outdivider;
     uint32_t MSx_P1, MSNx_P1, MSNx_P2, MSNx_P3;
 
-    // Overclock option
-    #ifdef SI_OVERCLOCK
-        // user a overclock setting for the VCO, max value in my hardware
-        // was 1.05 to 1.1 GHz, as usual YMMV [See README.md for details]
-        outdivider = SI_OVERCLOCK / freq;
-    #else
-        // normal VCO from the datasheet and AN
-        // With 900 MHz beeing the maximum internal PLL-Frequency
-        outdivider = 900000000 / freq;
-    #endif
+    // normal VCO from the datasheet and AN
+    // With 900 MHz beeing the maximum internal PLL-Frequency
+    outdivider = max_vco / freq;
 
     // use additional Output divider ("R")
     while (outdivider > 900) {

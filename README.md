@@ -164,7 +164,7 @@ loop() {
 ```
 
 
-## OVERCLOCK ##
+## OVERCLOCK (or underclock) ##
 
 Yes, you can overclock the Si5351, the datasheet states that the VCO moves from 600 to 900 MHz and that gives us a usable range from ~3 kHz to 225 MHz.
 
@@ -184,13 +184,9 @@ With a maximum VCO of 1.000 GHz and a lower division factor of 4 we have jumped 
 
 **How to do it?**
 
-You need to declare a macro with the overclock value **BEFORE** the library include, just like this:
+Initialize the Si5351mcu object with two parameters, the crystal frequency and the max VCO frequency, both in Hertz:
 
 ```
-(... your code here ...)
-
-// Using the overclock feature for the Si5351mcu library
-#define SI_OVERCLOCK 1000000000L      // 1.0 GHz in Hz
 
 // now include the library
 #include "si5351mcu.h"
@@ -198,11 +194,20 @@ You need to declare a macro with the overclock value **BEFORE** the library incl
 // lib instantiation as "Si"
 Si5351mcu Si;
 
-// now you can generate frequencies from ~10 kHz up to 250 MHz.
+void setup() {
+    // 25 MHz xtal, 1.0 GHz max VCO frequency
+    Si.init(25000000L, 1000000000L)
 
-(... more of your code here ...)
+    // now you can generate frequencies from ~10 kHz up to 250 MHz.
+
+    (... more of your code here ...)
+
+}
 
 ```
+
+This can also be used to underclock the VCO to allow lower frequency output and greater phase shifts at low freqencies
+(since the max phase shift is 127 quarter cycles of the VCO). 
 
 ## Click noise free ##
 
